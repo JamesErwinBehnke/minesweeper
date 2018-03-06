@@ -1,0 +1,444 @@
+import java.io.*;
+
+import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.BorderPane;
+import javafx.stage.Stage;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+
+public class MineSweeper extends Application {
+
+	static resetButton resetButton;
+
+	static CoverButton buttons[][];
+
+	static int cellCount = 25;
+	static int bombCount = 0;
+	static int numberFlagsSet = 9;
+	static boolean gameOver = false;
+
+	public static void main(String[] args) {
+
+		launch(args);
+
+	}
+	
+	public void updateBanner(HBox topSection){
+		topSection.getChildren().clear();
+		Label timeLeft = new Label("000");
+
+		timeLeft.setPadding(new Insets(10, 10, 10, 10));
+
+		ImageView minesLeftBox1 = new ImageView(new Image("file:res/digits/0.png"));
+		ImageView mineLeftBox2 = new ImageView(new Image("file:res/digits/0.png"));
+		ImageView mineLeftBox3 = new ImageView(new Image("file:res/digits/" + numberFlagsSet + ".png"));
+		topSection.getChildren().addAll(minesLeftBox1, mineLeftBox2, mineLeftBox3, resetButton, timeLeft);
+		
+	}
+	public void checkLose(CoverButton[][] buttons){
+		if(gameOver){
+			for (int i = 0; i < 5; i++) {
+				for (int j = 0; j < 5; j++) {
+					if(buttons[i][j].value == 4){
+						if(!buttons[i][j].isOpened){
+							buttons[i][j].revealed = buttons[i][j].theGreyBomb;
+							buttons[i][j].setGraphic(buttons[i][j].revealed);					
+						}
+					}
+						
+				}
+			}
+
+		}
+	}
+	
+	public void checkBoard(CoverButton[][] buttons){
+		checkWin();
+		checkLose(buttons);
+		
+	}
+
+	public int checkDanger(CoverButton[][] grid, int x, int y) {
+		int dangerCount = 0;
+		if (x > 0) {
+			// check x - 1 LEFT
+			if (isDanger(grid, x - 1, y)) {
+				dangerCount++;
+			}
+		}
+		if (y > 0) {
+			// check y - 1 TOP
+			if (isDanger(grid, x, y - 1)) {
+				dangerCount++;
+			}
+		}
+		if (x > 0 && y > 0) {
+			// check x-1 y-1 TOP LEFT
+			if (isDanger(grid, x - 1, y - 1)) {
+				dangerCount++;
+			}
+		}
+		if (x != 4 && y > 0) {
+			// check x+1 y-1 TOP RIGHT
+			if (isDanger(grid, x + 1, y - 1)) {
+				dangerCount++;
+			}
+		}
+		if (x != 4) {
+			// check x + 1 RIGHT
+			// System.out.println(x + " " + y);
+			if (isDanger(grid, x + 1, y)) {
+				dangerCount++;
+			}
+		}
+		if (y != 4) {
+			// check y + 1 DOWN
+			// System.out.println(x + " " + y);
+			if (isDanger(grid, x, y + 1)) {
+				dangerCount++;
+			}
+		}
+		if (x != 4 && y != 4) {
+			// check x + 1 && y + 1 RIGHT BOTTOM
+			if (isDanger(grid, x + 1, y + 1)) {
+				dangerCount++;
+			}
+		}
+		if (x > 0 && y != 4) {
+			// check X - 1 Y + 1 LEFT BOTTOM
+			if (isDanger(grid, x - 1, y + 1)) {
+				dangerCount++;
+			}
+		}
+		return dangerCount;
+	}
+
+	public boolean isDanger(CoverButton[][] grid, int x, int y) {
+		if (grid[y][x].value == 4) {
+			return true;
+		}
+		return false;
+	}
+
+	public void start(Stage theStage) {
+
+		BorderPane bp = new BorderPane();
+
+		HBox topSection = new HBox();
+
+		GridPane sweep = new GridPane();
+		topSection.setStyle(
+				"-fx-background-color: #bfbfbf; -fx-border-color: #787878 #fafafa #fafafa #787878; -fx-border-width:5; -fx-border-radius: 0.001;");
+		bp.setBottom(sweep);
+		bp.setStyle(
+				"-fx-background-color: #bfbfbf; -fx-border-color: #787878 #fafafa #fafafa #787878; -fx-border-width:5; -fx-border-radius: 0.001;");
+		topSection.setAlignment(Pos.CENTER);
+		
+		bp.setTop(topSection);
+//		ImageView minesLeftBox1 = new ImageView(new Image("file:res/digits/0.png"));
+//		ImageView mineLeftBox2 = new ImageView(new Image("file:res/digits/0.png"));
+//		ImageView mineLeftBox3 = new ImageView(new Image("file:res/digits/" + counter + ".png"));
+		// Label minesLeft = new Label("010");
+
+		// minesLeft.setPadding(new Insets(10, 10, 10, 10));
+
+		resetButton = new resetButton();
+
+		resetButton.setOnAction(click -> {
+			MineSweeper game = new MineSweeper();
+			game.start(theStage);
+			gameOver = false;
+		});
+
+	
+		updateBanner(topSection);
+		buttons = new CoverButton[5][5];
+		// hardcode the bombs
+
+		/// todo figure out code for randomly placing the bombs
+		for (int y = 0; y < 5; y++) {
+
+			for (int x = 0; x < 5; x++) {
+				buttons[y][x] = new CoverButton();
+
+				CoverButton b = buttons[y][x];
+				b.setGraphic(b.cover);
+			
+				b.setOnAction(click -> {
+					b.leftState = 1;
+					System.out.println("~~~~~```b value is " + b.value);
+					if (!gameOver) {
+						
+						if (b.value == 1) {
+
+							b.revealed = b.oneImage;
+							cellCount--;
+						} else if (b.value == 2) {
+							b.revealed = b.twoImage;
+							cellCount--;
+						} else if (b.value == 3) {
+							b.revealed = b.threeImage;
+							cellCount--;
+						} else if (b.value == 4) {
+							b.revealed = b.theBombImage;
+							MineSweeper.resetButton.setGraphic(resetButton.deadFace);
+							gameOver = true;
+							b.isOpened = true;
+							
+						} else if (b.value == 0) {
+							b.revealed = b.zeroImage;
+							cellCount--;
+						} else if (b.value == 11) {
+							b.revealed = b.flag;
+							cellCount--;
+							bombCount--;
+						}
+						
+						// else if(b.rightValue == 12){
+						// b.revealed =
+						// }
+						b.setGraphic(b.revealed);
+						
+					}
+					checkBoard(buttons);
+					
+				});
+				b.setOnMouseClicked(click -> {
+					if (click.getButton().equals(MouseButton.SECONDARY)) {
+						// b.state = 1;
+//						b.rightState++;
+//						b.rightState %= 2;
+//						checkWin();
+
+					System.out.println("b value is " + b.value + " b og value is " + b.originalValue);
+						//
+						if (!gameOver) {
+						
+							if (b.isFlagged  && numberFlagsSet < 9) {
+								b.setGraphic(b.cover);
+								System.out.println("this is righ click 0");
+								b.value = b.originalValue;
+								b.isFlagged = false;
+								numberFlagsSet++;
+							} else if (!b.isFlagged  && numberFlagsSet > 0) {
+								System.out.println("this is right click 1");
+								b.setGraphic(b.flag);
+								b.originalValue = b.value;
+								b.value = 11;
+								b.isFlagged = true;
+								numberFlagsSet--;
+							}
+						}
+					}
+					updateBanner(topSection);
+				});
+				sweep.add(buttons[y][x], y, x);
+				// this adds random mines.
+				int random = (int) (Math.random() * 100);
+				if (random > 85){
+					buttons[y][x].value = 4;
+					bombCount++;
+				}
+				
+			}
+
+		}
+
+		// buttons[1][1].value = 4;
+		// buttons[3][2].value = 4;
+		// buttons[3][3].value = 4;
+		// System.out.println(buttons[1][1].toString());
+		for (int y = 0; y < 5; y++) {
+			for (int x = 0; x < 5; x++) {
+
+				if (buttons[y][x].value != 4) {
+					buttons[y][x].value = checkDanger(buttons, x, y);
+				}
+				
+			}
+		}
+
+		theStage.setScene(new Scene(bp));
+
+		theStage.show();
+
+	}
+
+	public void checkWin() {
+		// System.out.println("Hello from check Win");
+
+		//int bombCount = 3;
+		int opened = 0;
+
+		for (int i = 0; i < 5; i++) {
+			for (int j = 0; j < 5; j++) {
+				if (buttons[i][j].leftState == 1 && buttons[i][j].value != 4) {
+					opened++;
+
+					
+
+					if (opened == 22) {
+						MineSweeper.resetButton.setGraphic(resetButton.winFace);
+						gameOver = true;
+					}
+				}
+			}
+		}
+
+	}
+
+}
+
+class resetButton extends Button implements EventHandler<ActionEvent> {
+
+	int faceState;
+
+	int faceValue;
+
+	static ImageView smileyFace;
+
+	static ImageView deadFace;
+
+	static ImageView winFace;
+
+	ImageView astonishedFace;
+
+	public resetButton() {
+
+		faceState = 0;
+
+		faceValue = 0;
+
+		double faceSize = 45;
+
+		setMinWidth(faceSize);
+
+		setMinHeight(faceSize);
+
+		setMaxWidth(faceSize);
+
+		setMaxHeight(faceSize);
+
+		smileyFace = new ImageView(new Image("file:res/face-smile.png"));
+
+		smileyFace.setFitWidth(faceSize);
+
+		smileyFace.setFitHeight(faceSize);
+
+		deadFace = new ImageView(new Image("file:res/face-dead.png"));
+
+		deadFace.setFitWidth(faceSize);
+
+		deadFace.setFitHeight(faceSize);
+
+		winFace = new ImageView(new Image("file:res/face-win.png"));
+
+		winFace.setFitWidth(faceSize);
+
+		winFace.setFitHeight(faceSize);
+
+		astonishedFace = new ImageView(new Image("file:res/face-O.png"));
+
+		astonishedFace.setFitWidth(faceSize);
+
+		astonishedFace.setFitHeight(faceSize);
+
+		setGraphic(smileyFace);
+
+	}
+
+	@Override
+	public void handle(ActionEvent event) {
+
+	}
+
+}
+
+class CoverButton extends Button implements EventHandler<ActionEvent> {
+
+	int leftState, rightState;
+	boolean isFlagged, isOpened;
+	int value, originalValue;
+	ImageView cover, revealed, theGreyBomb, zeroImage, oneImage, twoImage, threeImage, theBombImage, flag;
+
+	public CoverButton() {
+		isFlagged = false;
+		isOpened = false;
+		value = 0;
+		originalValue = 0;
+
+		leftState = 0;
+		rightState = 0;
+
+		double size = 80;
+
+		setMinWidth(size);
+
+		setMinHeight(size);
+
+		setMaxWidth(size);
+
+		setMaxHeight(size);
+		flag = new ImageView(new Image("file:res/flag.png"));
+		flag.setFitHeight(size);
+		flag.setFitWidth(size);
+		cover = new ImageView(new Image("file:res/cover.png"));
+
+		cover.setFitWidth(size);
+
+		cover.setFitHeight(size);
+
+		zeroImage = new ImageView(new Image("file:res/0.png"));
+
+		zeroImage.setFitWidth(size);
+
+		zeroImage.setFitHeight(size);
+
+		oneImage = new ImageView(new Image("file:res/1.png"));
+
+		oneImage.setFitWidth(size);
+
+		oneImage.setFitHeight(size);
+
+		twoImage = new ImageView(new Image("file:res/2.png"));
+
+		twoImage.setFitWidth(size);
+
+		twoImage.setFitHeight(size);
+
+		threeImage = new ImageView(new Image("file:res/3.png"));
+
+		threeImage.setFitWidth(size);
+
+		threeImage.setFitHeight(size);
+
+		theBombImage = new ImageView(new Image("file:res/mine-red.png"));
+
+		theBombImage.setFitWidth(size);
+
+		theBombImage.setFitHeight(size);
+		
+		theGreyBomb = new ImageView(new Image("file:res/mine-grey.png"));
+		theGreyBomb.setFitHeight(size);
+		theGreyBomb.setFitWidth(size);
+
+		setGraphic(cover);
+
+	}
+
+	@Override
+	public void handle(ActionEvent event) {
+		// TODO Auto-generated method stub
+
+	}
+}
